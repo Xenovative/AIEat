@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="{{ 'zh-HK' if lang == 'zh' else 'en' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'AIEat 管理面板' if lang == 'zh' else 'AIEat Admin Panel' }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .admin-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-link.active {
+            background: #43a047;
+            border-left: 4px solid #66bb6a;
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .top-bar h1 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .stat-icon.green {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+        }
+
+        .stat-icon.blue {
+            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%);
+            color: white;
+        }
+
+        .stat-icon.orange {
+            background: linear-gradient(135deg, #ffa726 0%, #fb8c00 100%);
+            color: white;
+        }
+
+        .stat-icon.purple {
+            background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
+            color: white;
+        }
+
+        .stat-info h3 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .stat-info p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .content-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .content-card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 160, 71, 0.4);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #43a047;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-blue {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-orange {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: #2c3e50;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #43a047;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-utensils"></i> AIEat</h2>
+                <p>{{ '管理面板' if lang == 'zh' else 'Admin Dashboard' }}</p>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a class="nav-link active" data-section="dashboard">
+                        <i class="fas fa-chart-line"></i>
+                        <span>{{ '儀表板' if lang == 'zh' else 'Dashboard' }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-section="restaurants">
+                        <i class="fas fa-store"></i>
+                        <span>{{ '餐廳管理' if lang == 'zh' else 'Restaurants' }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-section="analytics">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>{{ '數據分析' if lang == 'zh' else 'Analytics' }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-section="search-history">
+                        <i class="fas fa-history"></i>
+                        <span>{{ '搜尋記錄' if lang == 'zh' else 'Search History' }}</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-section="settings">
+                        <i class="fas fa-cog"></i>
+                        <span>{{ '設定' if lang == 'zh' else 'Settings' }}</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <h1 id="page-title">{{ '儀表板' if lang == 'zh' else 'Dashboard' }}</h1>
+                <div class="user-info">
+                    <a href="?lang={{ 'en' if lang == 'zh' else 'zh' }}" style="text-decoration: none; color: #43a047; font-weight: 600; margin-right: 15px;">
+                        {{ 'English' if lang == 'zh' else '中文' }}
+                    </a>
+                    <div class="user-avatar">A</div>
+                    <span>{{ '管理員' if lang == 'zh' else 'Admin' }}</span>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> {{ '登出' if lang == 'zh' else 'Logout' }}
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="section active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-restaurants">0</h3>
+                            <p>{{ '餐廳總數' if lang == 'zh' else 'Total Restaurants' }}</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-districts">0</h3>
+                            <p>{{ '地區數量' if lang == 'zh' else 'Districts' }}</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-utensils"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="total-cuisines">0</h3>
+                            <p>{{ '菜系種類' if lang == 'zh' else 'Cuisine Types' }}</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="avg-rating">0</h3>
+                            <p>{{ '平均評分' if lang == 'zh' else 'Avg Rating' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card">
+                    <h2><i class="fas fa-chart-bar"></i> {{ '快速統計' if lang == 'zh' else 'Quick Stats' }}</h2>
+                    <div id="quick-stats">
+                        <p>{{ '載入統計資料中...' if lang == 'zh' else 'Loading statistics...' }}</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Restaurants Section -->
+            <section id="restaurants" class="section">
+                <div class="content-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2><i class="fas fa-store"></i> {{ '管理餐廳' if lang == 'zh' else 'Manage Restaurants' }}</h2>
+                        <button class="btn btn-primary" onclick="openAddModal()">
+                            <i class="fas fa-plus"></i> {{ '新增餐廳' if lang == 'zh' else 'Add Restaurant' }}
+                        </button>
+                    </div>
+
+                    <div class="search-bar">
+                        <input type="text" class="search-input" id="search-input" placeholder="{{ '搜尋餐廳名稱、菜系或地區...' if lang == 'zh' else 'Search restaurants by name, cuisine, or district...' }}">
+                        <button class="btn btn-primary" onclick="searchRestaurants()">
+                            <i class="fas fa-search"></i> {{ '搜尋' if lang == 'zh' else 'Search' }}
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="restaurants-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ '名稱' if lang == 'zh' else 'Name' }}</th>
+                                    <th>{{ '菜系' if lang == 'zh' else 'Cuisine' }}</th>
+                                    <th>{{ '地區' if lang == 'zh' else 'District' }}</th>
+                                    <th>{{ '價格' if lang == 'zh' else 'Price' }}</th>
+                                    <th>{{ '評分' if lang == 'zh' else 'Rating' }}</th>
+                                    <th>{{ '操作' if lang == 'zh' else 'Actions' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="restaurants-tbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px;">
+                                        <i class="fas fa-spinner fa-spin"></i> {{ '載入餐廳資料中...' if lang == 'zh' else 'Loading restaurants...' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="section">
+                <div class="content-card">
+                    <h2><i class="fas fa-chart-bar"></i> {{ '數據分析' if lang == 'zh' else 'Analytics' }}</h2>
+                    
+                    <div class="stats-grid" style="margin-bottom: 30px;">
+                        <div class="stat-card">
+                            <div class="stat-icon blue">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="total-searches">0</h3>
+                                <p>{{ '總搜尋次數' if lang == 'zh' else 'Total Searches' }}</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon green">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="unique-users">0</h3>
+                                <p>{{ '獨立用戶' if lang == 'zh' else 'Unique Users' }}</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon orange">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="popular-cuisine-stat">-</h3>
+                                <p>{{ '最熱門菜系' if lang == 'zh' else 'Most Popular Cuisine' }}</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon purple">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="popular-district-stat">-</h3>
+                                <p>{{ '最熱門地區' if lang == 'zh' else 'Most Popular District' }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                        <div class="content-card" style="padding: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #2c3e50;">
+                                <i class="fas fa-utensils"></i> {{ '熱門菜系搜尋' if lang == 'zh' else 'Popular Cuisine Searches' }}
+                            </h3>
+                            <canvas id="cuisine-chart" style="max-height: 300px;"></canvas>
+                        </div>
+                        <div class="content-card" style="padding: 20px;">
+                            <h3 style="margin-bottom: 15px; color: #2c3e50;">
+                                <i class="fas fa-map-marker-alt"></i> {{ '熱門地區搜尋' if lang == 'zh' else 'Popular District Searches' }}
+                            </h3>
+                            <canvas id="district-chart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="content-card" style="padding: 20px; margin-bottom: 30px;">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">
+                            <i class="fas fa-dollar-sign"></i> {{ '預算分佈' if lang == 'zh' else 'Budget Distribution' }}
+                        </h3>
+                        <canvas id="budget-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <div class="content-card" style="padding: 20px;">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">
+                            <i class="fas fa-calendar-alt"></i> {{ '搜尋趨勢 (過去7天)' if lang == 'zh' else 'Search Trends (Last 7 Days)' }}
+                        </h3>
+                        <canvas id="trend-chart" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search History Section -->
+            <section id="search-history" class="section">
+                <div class="content-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2><i class="fas fa-history"></i> {{ '搜尋記錄' if lang == 'zh' else 'Search History' }}</h2>
+                        <div>
+                            <button class="btn btn-secondary" onclick="exportSearchHistory()">
+                                <i class="fas fa-download"></i> {{ '匯出' if lang == 'zh' else 'Export' }}
+                            </button>
+                            <button class="btn btn-danger" onclick="clearSearchHistory()" style="margin-left: 10px;">
+                                <i class="fas fa-trash"></i> {{ '清除全部' if lang == 'zh' else 'Clear All' }}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="search-bar">
+                        <input type="text" class="search-input" id="history-search-input" placeholder="{{ '搜尋記錄...' if lang == 'zh' else 'Search history...' }}">
+                        <select class="form-control" id="history-filter" style="width: 200px; margin-left: 10px;">
+                            <option value="all">{{ '全部' if lang == 'zh' else 'All' }}</option>
+                            <option value="today">{{ '今天' if lang == 'zh' else 'Today' }}</option>
+                            <option value="week">{{ '本週' if lang == 'zh' else 'This Week' }}</option>
+                            <option value="month">{{ '本月' if lang == 'zh' else 'This Month' }}</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="filterSearchHistory()" style="margin-left: 10px;">
+                            <i class="fas fa-filter"></i> {{ '篩選' if lang == 'zh' else 'Filter' }}
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="search-history-table">
+                            <thead>
+                                <tr>
+                                    <th>{{ '時間' if lang == 'zh' else 'Time' }}</th>
+                                    <th>{{ '用戶偏好' if lang == 'zh' else 'User Preferences' }}</th>
+                                    <th>{{ '菜系' if lang == 'zh' else 'Cuisine' }}</th>
+                                    <th>{{ '地區' if lang == 'zh' else 'District' }}</th>
+                                    <th>{{ '預算' if lang == 'zh' else 'Budget' }}</th>
+                                    <th>{{ '結果數量' if lang == 'zh' else 'Results' }}</th>
+                                    <th>{{ '語言' if lang == 'zh' else 'Language' }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="search-history-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px;">
+                                        <i class="fas fa-spinner fa-spin"></i> {{ '載入搜尋記錄中...' if lang == 'zh' else 'Loading search history...' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="history-pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-secondary btn-sm" onclick="previousPage()" id="prev-btn">
+                            <i class="fas fa-chevron-left"></i> {{ '上一頁' if lang == 'zh' else 'Previous' }}
+                        </button>
+                        <span id="page-info" style="color: #666;">{{ '第' if lang == 'zh' else 'Page' }} 1 {{ '頁' if lang == 'zh' else '' }}</span>
+                        <button class="btn btn-secondary btn-sm" onclick="nextPage()" id="next-btn">
+                            {{ '下一頁' if lang == 'zh' else 'Next' }} <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings" class="section">
+                <div class="content-card">
+                    <h2><i class="fas fa-cog"></i> {{ '設定' if lang == 'zh' else 'Settings' }}</h2>
+                    
+                    <div id="settings-alert" style="display: none;" class="alert"></div>
+
+                    <h3 style="margin-top: 20px; margin-bottom: 15px; color: #2c3e50;">
+                        <i class="fas fa-robot"></i> {{ 'AI 服務設定' if lang == 'zh' else 'AI Service Configuration' }}
+                    </h3>
+
+                    <div class="form-group">
+                        <label>{{ 'AI 服務' if lang == 'zh' else 'AI Service' }}</label>
+                        <select class="form-control" id="ai-service">
+                            <option value="ollama">Ollama ({{ '本地' if lang == 'zh' else 'Local' }})</option>
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="openai">OpenAI</option>
+                        </select>
+                    </div>
+
+                    <div id="ollama-settings" style="display: none;">
+                        <div class="form-group">
+                            <label>{{ 'Ollama URL' if lang == 'zh' else 'Ollama URL' }}</label>
+                            <input type="text" class="form-control" id="ollama-url" placeholder="http://localhost:11434">
+                        </div>
+                        <div class="form-group">
+                            <label>{{ 'Ollama 模型' if lang == 'zh' else 'Ollama Model' }}</label>
+                            <input type="text" class="form-control" id="ollama-model" placeholder="llama3.2">
+                        </div>
+                    </div>
+
+                    <div id="openrouter-settings" style="display: none;">
+                        <div class="form-group">
+                            <label>{{ 'OpenRouter API Key' if lang == 'zh' else 'OpenRouter API Key' }}</label>
+                            <input type="password" class="form-control" id="openrouter-key" placeholder="sk-or-...">
+                            <small style="color: #666;">{{ '從 openrouter.ai 獲取' if lang == 'zh' else 'Get from openrouter.ai' }}</small>
+                        </div>
+                    </div>
+
+                    <div id="openai-settings" style="display: none;">
+                        <div class="form-group">
+                            <label>{{ 'OpenAI API Key' if lang == 'zh' else 'OpenAI API Key' }}</label>
+                            <input type="password" class="form-control" id="openai-key" placeholder="sk-proj-...">
+                            <small style="color: #666;">{{ '從 platform.openai.com 獲取' if lang == 'zh' else 'Get from platform.openai.com' }}</small>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ 'OpenAI 模型' if lang == 'zh' else 'OpenAI Model' }}</label>
+                            <select class="form-control" id="openai-model">
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 30px; margin-bottom: 15px; color: #2c3e50;">
+                        <i class="fas fa-shield-alt"></i> {{ '管理員設定' if lang == 'zh' else 'Admin Configuration' }}
+                    </h3>
+
+                    <div class="form-group">
+                        <label>{{ '管理員用戶名' if lang == 'zh' else 'Admin Username' }}</label>
+                        <input type="text" class="form-control" id="admin-username" placeholder="admin">
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '管理員密碼' if lang == 'zh' else 'Admin Password' }}</label>
+                        <input type="password" class="form-control" id="admin-password" placeholder="{{ '留空表示不更改' if lang == 'zh' else 'Leave blank to keep current' }}">
+                        <small style="color: #666;">{{ '更改密碼後需要重新登入' if lang == 'zh' else 'You will need to re-login after changing password' }}</small>
+                    </div>
+
+                    <h3 style="margin-top: 30px; margin-bottom: 15px; color: #2c3e50;">
+                        <i class="fas fa-database"></i> {{ '系統狀態' if lang == 'zh' else 'System Status' }}
+                    </h3>
+
+                    <div class="form-group">
+                        <label>{{ '資料庫狀態' if lang == 'zh' else 'Database Status' }}</label>
+                        <p id="db-status" style="padding: 10px; background: #f8f9fa; border-radius: 6px;">{{ '檢查中...' if lang == 'zh' else 'Checking...' }}</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ 'AI 服務狀態' if lang == 'zh' else 'AI Service Status' }}</label>
+                        <p id="ai-status" style="padding: 10px; background: #f8f9fa; border-radius: 6px;">{{ '檢查中...' if lang == 'zh' else 'Checking...' }}</p>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <button class="btn btn-primary" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> {{ '儲存設定' if lang == 'zh' else 'Save Settings' }}
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadSettings()" style="margin-left: 10px;">
+                            <i class="fas fa-redo"></i> {{ '重新載入' if lang == 'zh' else 'Reload' }}
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add/Edit Restaurant Modal -->
+    <div class="modal" id="restaurant-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">{{ '新增餐廳' if lang == 'zh' else 'Add Restaurant' }}</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="restaurant-form">
+                    <input type="hidden" id="restaurant-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ '名稱 (英文)' if lang == 'zh' else 'Name (English)' }} *</label>
+                            <input type="text" class="form-control" id="name-en" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ '名稱 (中文)' if lang == 'zh' else 'Name (Chinese)' }}</label>
+                            <input type="text" class="form-control" id="name-zh">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ '菜系 (英文)' if lang == 'zh' else 'Cuisine (English)' }} *</label>
+                            <input type="text" class="form-control" id="cuisine-en" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ '菜系 (中文)' if lang == 'zh' else 'Cuisine (Chinese)' }}</label>
+                            <input type="text" class="form-control" id="cuisine-zh">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ '地區 (英文)' if lang == 'zh' else 'District (English)' }} *</label>
+                            <input type="text" class="form-control" id="district-en" required>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ '地區 (中文)' if lang == 'zh' else 'District (Chinese)' }}</label>
+                            <input type="text" class="form-control" id="district-zh">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ '價格範圍' if lang == 'zh' else 'Price Range' }} *</label>
+                            <select class="form-control" id="price" required>
+                                <option value="">{{ '選擇價格範圍' if lang == 'zh' else 'Select price range' }}</option>
+                                <option value="Below $50">{{ '$50以下' if lang == 'zh' else 'Below $50' }}</option>
+                                <option value="$51-100">$51-100</option>
+                                <option value="$101-200">$101-200</option>
+                                <option value="$201-400">$201-400</option>
+                                <option value="$401-800">$401-800</option>
+                                <option value="Above $800">{{ '$800以上' if lang == 'zh' else 'Above $800' }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>{{ '電話' if lang == 'zh' else 'Phone' }}</label>
+                            <input type="text" class="form-control" id="phone">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '地址 (英文)' if lang == 'zh' else 'Address (English)' }}</label>
+                        <input type="text" class="form-control" id="address-en">
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '地址 (中文)' if lang == 'zh' else 'Address (Chinese)' }}</label>
+                        <input type="text" class="form-control" id="address-zh">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>{{ '營業時間 (英文)' if lang == 'zh' else 'Opening Hours (English)' }}</label>
+                            <input type="text" class="form-control" id="opening-hours-en">
+                        </div>
+                        <div class="form-group">
+                            <label>{{ '營業時間 (中文)' if lang == 'zh' else 'Opening Hours (Chinese)' }}</label>
+                            <input type="text" class="form-control" id="opening-hours-zh">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '描述 (英文)' if lang == 'zh' else 'Description (English)' }}</label>
+                        <textarea class="form-control" id="description-en"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '描述 (中文)' if lang == 'zh' else 'Description (Chinese)' }}</label>
+                        <textarea class="form-control" id="description-zh"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '招牌菜 (英文)' if lang == 'zh' else 'Popular Dishes (English)' }}</label>
+                        <input type="text" class="form-control" id="popular-dishes-en" placeholder="{{ '菜式1 / 菜式2 / 菜式3' if lang == 'zh' else 'Dish 1 / Dish 2 / Dish 3' }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '招牌菜 (中文)' if lang == 'zh' else 'Popular Dishes (Chinese)' }}</label>
+                        <input type="text" class="form-control" id="popular-dishes-zh">
+                    </div>
+
+                    <div class="form-group">
+                        <label>{{ '網址' if lang == 'zh' else 'URL' }}</label>
+                        <input type="url" class="form-control" id="url">
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">
+                            <i class="fas fa-save"></i> {{ '儲存餐廳' if lang == 'zh' else 'Save Restaurant' }}
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                            <i class="fas fa-times"></i> {{ '取消' if lang == 'zh' else 'Cancel' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allRestaurants = [];
+        let currentEditId = null;
+        const lang = '{{ lang }}';
+        
+        // Translations
+        const t = {
+            zh: {
+                dashboard: '儀表板',
+                restaurants: '餐廳管理',
+                analytics: '數據分析',
+                'search-history': '搜尋記錄',
+                settings: '設定',
+                mostPopularCuisine: '最受歡迎菜系',
+                mostPopularDistrict: '最受歡迎地區',
+                priceDistribution: '價格分佈',
+                restaurants_text: '間餐廳',
+                deleteConfirm: '確定要刪除',
+                deleteSuccess: '餐廳已成功刪除！',
+                deleteError: '刪除餐廳時發生錯誤',
+                addSuccess: '餐廳已成功新增！',
+                updateSuccess: '餐廳已成功更新！',
+                saveError: '儲存餐廳時發生錯誤',
+                logoutConfirm: '確定要登出嗎？',
+                addRestaurant: '新增餐廳',
+                editRestaurant: '編輯餐廳',
+                noRestaurants: '找不到餐廳',
+                errorLoading: '載入餐廳時發生錯誤',
+                settingsSaved: '設定已成功儲存！',
+                settingsError: '儲存設定時發生錯誤',
+                settingsLoaded: '設定已載入',
+                connected: '已連接',
+                disconnected: '未連接',
+                checking: '檢查中...',
+                dbConnected: '資料庫已連接',
+                restaurants_loaded: '間餐廳已載入'
+            },
+            en: {
+                dashboard: 'Dashboard',
+                restaurants: 'Manage Restaurants',
+                analytics: 'Analytics',
+                'search-history': 'Search History',
+                settings: 'Settings',
+                mostPopularCuisine: 'Most Popular Cuisine',
+                mostPopularDistrict: 'Most Popular District',
+                priceDistribution: 'Price Range Distribution',
+                restaurants_text: ' restaurants',
+                deleteConfirm: 'Are you sure you want to delete',
+                deleteSuccess: 'Restaurant deleted successfully!',
+                deleteError: 'Error deleting restaurant',
+                addSuccess: 'Restaurant added successfully!',
+                updateSuccess: 'Restaurant updated successfully!',
+                saveError: 'Error saving restaurant',
+                logoutConfirm: 'Are you sure you want to logout?',
+                addRestaurant: 'Add Restaurant',
+                editRestaurant: 'Edit Restaurant',
+                noRestaurants: 'No restaurants found',
+                errorLoading: 'Error loading restaurants',
+                settingsSaved: 'Settings saved successfully!',
+                settingsError: 'Error saving settings',
+                settingsLoaded: 'Settings loaded',
+                connected: 'Connected',
+                disconnected: 'Disconnected',
+                checking: 'Checking...',
+                dbConnected: 'Database connected',
+                restaurants_loaded: ' restaurants loaded'
+            }
+        };
+
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function() {
+                const section = this.dataset.section;
+                
+                // Update active nav
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show section
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(section).classList.add('active');
+                
+                // Update title
+                const titles = t[lang];
+                document.getElementById('page-title').textContent = titles[section];
+                
+                // Load data if needed
+                if (section === 'restaurants' && allRestaurants.length === 0) {
+                    loadRestaurants();
+                }
+            });
+        });
+
+        // Load dashboard stats
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/admin/api/stats');
+                const data = await response.json();
+                
+                document.getElementById('total-restaurants').textContent = data.total_restaurants;
+                document.getElementById('total-districts').textContent = data.total_districts;
+                document.getElementById('total-cuisines').textContent = data.total_cuisines;
+                document.getElementById('avg-rating').textContent = data.avg_rating + '%';
+                
+                const statsHtml = `
+                    <p><strong>${t[lang].mostPopularCuisine}:</strong> ${data.popular_cuisine}</p>
+                    <p><strong>${t[lang].mostPopularDistrict}:</strong> ${data.popular_district}</p>
+                    <p><strong>${t[lang].priceDistribution}:</strong></p>
+                    <ul>
+                        ${Object.entries(data.price_distribution).map(([range, count]) => 
+                            `<li>${range}: ${count}${t[lang].restaurants_text}</li>`
+                        ).join('')}
+                    </ul>
+                `;
+                document.getElementById('quick-stats').innerHTML = statsHtml;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Load restaurants
+        async function loadRestaurants() {
+            try {
+                const response = await fetch('/admin/api/restaurants');
+                const data = await response.json();
+                allRestaurants = data.restaurants;
+                displayRestaurants(allRestaurants);
+            } catch (error) {
+                console.error('Error loading restaurants:', error);
+                document.getElementById('restaurants-tbody').innerHTML = `
+                    <tr><td colspan="6" style="text-align: center; color: red;">${t[lang].errorLoading}</td></tr>
+                `;
+            }
+        }
+
+        // Display restaurants in table
+        function displayRestaurants(restaurants) {
+            const tbody = document.getElementById('restaurants-tbody');
+            
+            if (restaurants.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="6" style="text-align: center; padding: 40px;">${t[lang].noRestaurants}</td></tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = restaurants.map(r => {
+                const smileRatio = r.rating_smile / (r.rating_smile + r.rating_ok + r.rating_cry) * 100 || 0;
+                return `
+                    <tr>
+                        <td>
+                            <strong>${r.name_en}</strong><br>
+                            <small style="color: #7f8c8d;">${r.name_zh || '-'}</small>
+                        </td>
+                        <td>${r.cuisine_en}</td>
+                        <td>${r.district_en}</td>
+                        <td><span class="badge badge-blue">${r.price}</span></td>
+                        <td>
+                            <span style="color: #43a047;">😊 ${r.rating_smile}</span>
+                            <span style="color: #ff9800;">😐 ${r.rating_ok}</span>
+                            <span style="color: #e74c3c;">😢 ${r.rating_cry}</span>
+                        </td>
+                        <td class="action-btns">
+                            <button class="btn btn-primary btn-sm" onclick="editRestaurant(${r.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteRestaurant(${r.id}, '${r.name_en}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Search restaurants
+        function searchRestaurants() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            const filtered = allRestaurants.filter(r => 
+                r.name_en.toLowerCase().includes(query) ||
+                r.name_zh.toLowerCase().includes(query) ||
+                r.cuisine_en.toLowerCase().includes(query) ||
+                r.district_en.toLowerCase().includes(query)
+            );
+            displayRestaurants(filtered);
+        }
+
+        // Open add modal
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modal-title').textContent = t[lang].addRestaurant;
+            document.getElementById('restaurant-form').reset();
+            document.getElementById('restaurant-id').value = '';
+            document.getElementById('restaurant-modal').classList.add('active');
+        }
+
+        // Edit restaurant
+        async function editRestaurant(id) {
+            currentEditId = id;
+            const restaurant = allRestaurants.find(r => r.id === id);
+            
+            if (!restaurant) return;
+            
+            document.getElementById('modal-title').textContent = t[lang].editRestaurant;
+            document.getElementById('restaurant-id').value = id;
+            document.getElementById('name-en').value = restaurant.name_en || '';
+            document.getElementById('name-zh').value = restaurant.name_zh || '';
+            document.getElementById('cuisine-en').value = restaurant.cuisine_en || '';
+            document.getElementById('cuisine-zh').value = restaurant.cuisine_zh || '';
+            document.getElementById('district-en').value = restaurant.district_en || '';
+            document.getElementById('district-zh').value = restaurant.district_zh || '';
+            document.getElementById('price').value = restaurant.price || '';
+            document.getElementById('phone').value = restaurant.phone || '';
+            document.getElementById('address-en').value = restaurant.address_en || '';
+            document.getElementById('address-zh').value = restaurant.address_zh || '';
+            document.getElementById('opening-hours-en').value = restaurant.opening_hours_en || '';
+            document.getElementById('opening-hours-zh').value = restaurant.opening_hours_zh || '';
+            document.getElementById('description-en').value = restaurant.description_en || '';
+            document.getElementById('description-zh').value = restaurant.description_zh || '';
+            document.getElementById('popular-dishes-en').value = restaurant.popular_dishes_en || '';
+            document.getElementById('popular-dishes-zh').value = restaurant.popular_dishes_zh || '';
+            document.getElementById('url').value = restaurant.url || '';
+            
+            document.getElementById('restaurant-modal').classList.add('active');
+        }
+
+        // Delete restaurant
+        async function deleteRestaurant(id, name) {
+            if (!confirm(`${t[lang].deleteConfirm} "${name}"?`)) return;
+            
+            try {
+                const response = await fetch(`/admin/api/restaurants/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert(t[lang].deleteSuccess);
+                    loadRestaurants();
+                    loadDashboardStats();
+                } else {
+                    alert(t[lang].deleteError);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(t[lang].deleteError);
+            }
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('restaurant-modal').classList.remove('active');
+        }
+
+        // Save restaurant
+        document.getElementById('restaurant-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('restaurant-id').value;
+            const data = {
+                name_en: document.getElementById('name-en').value,
+                name_zh: document.getElementById('name-zh').value,
+                cuisine_en: document.getElementById('cuisine-en').value,
+                cuisine_zh: document.getElementById('cuisine-zh').value,
+                district_en: document.getElementById('district-en').value,
+                district_zh: document.getElementById('district-zh').value,
+                price: document.getElementById('price').value,
+                phone: document.getElementById('phone').value,
+                address_en: document.getElementById('address-en').value,
+                address_zh: document.getElementById('address-zh').value,
+                opening_hours_en: document.getElementById('opening-hours-en').value,
+                opening_hours_zh: document.getElementById('opening-hours-zh').value,
+                description_en: document.getElementById('description-en').value,
+                description_zh: document.getElementById('description-zh').value,
+                popular_dishes_en: document.getElementById('popular-dishes-en').value,
+                popular_dishes_zh: document.getElementById('popular-dishes-zh').value,
+                url: document.getElementById('url').value
+            };
+            
+            try {
+                const url = id ? `/admin/api/restaurants/${id}` : '/admin/api/restaurants';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert(id ? t[lang].updateSuccess : t[lang].addSuccess);
+                    closeModal();
+                    loadRestaurants();
+                    loadDashboardStats();
+                } else {
+                    alert(t[lang].saveError);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert(t[lang].saveError);
+            }
+        });
+
+        // Logout
+        function logout() {
+            if (confirm(t[lang].logoutConfirm)) {
+                window.location.href = '/admin/logout';
+            }
+        }
+
+        // AI Service selector change handler
+        document.getElementById('ai-service').addEventListener('change', function() {
+            const service = this.value;
+            document.getElementById('ollama-settings').style.display = service === 'ollama' ? 'block' : 'none';
+            document.getElementById('openrouter-settings').style.display = service === 'openrouter' ? 'block' : 'none';
+            document.getElementById('openai-settings').style.display = service === 'openai' ? 'block' : 'none';
+        });
+
+        // Load settings
+        async function loadSettings() {
+            try {
+                const response = await fetch('/admin/api/settings');
+                const data = await response.json();
+                
+                // AI Service
+                document.getElementById('ai-service').value = data.ai_service || 'ollama';
+                document.getElementById('ai-service').dispatchEvent(new Event('change'));
+                
+                // Ollama
+                document.getElementById('ollama-url').value = data.ollama_url || '';
+                document.getElementById('ollama-model').value = data.ollama_model || '';
+                
+                // OpenRouter
+                document.getElementById('openrouter-key').value = data.openrouter_key || '';
+                
+                // OpenAI
+                document.getElementById('openai-key').value = data.openai_key || '';
+                document.getElementById('openai-model').value = data.openai_model || 'gpt-4o-mini';
+                
+                // Admin
+                document.getElementById('admin-username').value = data.admin_username || '';
+                
+                // Load system status
+                loadSystemStatus();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        // Load system status
+        async function loadSystemStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                
+                // Database status
+                const dbStatus = `✅ ${t[lang].dbConnected} - ${data.restaurants_loaded}${t[lang].restaurants_loaded}`;
+                document.getElementById('db-status').innerHTML = dbStatus;
+                
+                // AI status
+                let aiStatus = '';
+                if (data.ai_status === 'Connected' || data.ai_status === 'OpenRouter' || data.ai_status === 'OpenAI') {
+                    aiStatus = `✅ ${t[lang].connected} - ${data.ai_service}`;
+                } else {
+                    aiStatus = `❌ ${t[lang].disconnected} - ${data.ai_service}`;
+                }
+                document.getElementById('ai-status').innerHTML = aiStatus;
+            } catch (error) {
+                console.error('Error loading system status:', error);
+                document.getElementById('db-status').innerHTML = '❌ ' + t[lang].errorLoading;
+                document.getElementById('ai-status').innerHTML = '❌ ' + t[lang].errorLoading;
+            }
+        }
+
+        // Save settings
+        async function saveSettings() {
+            const alertDiv = document.getElementById('settings-alert');
+            
+            try {
+                const settings = {
+                    ai_service: document.getElementById('ai-service').value,
+                    ollama_url: document.getElementById('ollama-url').value,
+                    ollama_model: document.getElementById('ollama-model').value,
+                    openrouter_key: document.getElementById('openrouter-key').value,
+                    openai_key: document.getElementById('openai-key').value,
+                    openai_model: document.getElementById('openai-model').value,
+                    admin_username: document.getElementById('admin-username').value,
+                    admin_password: document.getElementById('admin-password').value
+                };
+                
+                const response = await fetch('/admin/api/settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                });
+                
+                if (response.ok) {
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${t[lang].settingsSaved}`;
+                    alertDiv.style.display = 'flex';
+                    
+                    // Clear password field
+                    document.getElementById('admin-password').value = '';
+                    
+                    // Reload system status
+                    setTimeout(() => {
+                        loadSystemStatus();
+                        alertDiv.style.display = 'none';
+                    }, 3000);
+                } else {
+                    throw new Error('Failed to save settings');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alertDiv.className = 'alert alert-error';
+                alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${t[lang].settingsError}`;
+                alertDiv.style.display = 'flex';
+            }
+        }
+
+        // Analytics variables
+        let cuisineChart, districtChart, budgetChart, trendChart;
+        let currentPage = 1;
+        let totalPages = 1;
+        let searchHistoryData = [];
+
+        // Load Analytics
+        async function loadAnalytics() {
+            try {
+                const response = await fetch('/admin/api/analytics');
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('total-searches').textContent = data.total_searches || 0;
+                document.getElementById('unique-users').textContent = data.unique_users || 0;
+                document.getElementById('popular-cuisine-stat').textContent = data.popular_cuisine || '-';
+                document.getElementById('popular-district-stat').textContent = data.popular_district || '-';
+                
+                // Create charts
+                createCuisineChart(data.cuisine_stats || {});
+                createDistrictChart(data.district_stats || {});
+                createBudgetChart(data.budget_stats || {});
+                createTrendChart(data.trend_data || []);
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        // Create Cuisine Chart
+        function createCuisineChart(data) {
+            const ctx = document.getElementById('cuisine-chart');
+            if (cuisineChart) cuisineChart.destroy();
+            
+            cuisineChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        data: Object.values(data),
+                        backgroundColor: [
+                            '#43a047', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9',
+                            '#e8f5e9', '#42a5f5', '#ffa726', '#ab47bc', '#ef5350'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        }
+
+        // Create District Chart
+        function createDistrictChart(data) {
+            const ctx = document.getElementById('district-chart');
+            if (districtChart) districtChart.destroy();
+            
+            districtChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: lang === 'zh' ? '搜尋次數' : 'Searches',
+                        data: Object.values(data),
+                        backgroundColor: '#43a047'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Create Budget Chart
+        function createBudgetChart(data) {
+            const ctx = document.getElementById('budget-chart');
+            if (budgetChart) budgetChart.destroy();
+            
+            budgetChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data),
+                    datasets: [{
+                        label: lang === 'zh' ? '搜尋次數' : 'Searches',
+                        data: Object.values(data),
+                        backgroundColor: '#42a5f5'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y'
+                }
+            });
+        }
+
+        // Create Trend Chart
+        function createTrendChart(data) {
+            const ctx = document.getElementById('trend-chart');
+            if (trendChart) trendChart.destroy();
+            
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: lang === 'zh' ? '搜尋次數' : 'Searches',
+                        data: data.map(d => d.count),
+                        borderColor: '#43a047',
+                        backgroundColor: 'rgba(67, 160, 71, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // Load Search History
+        async function loadSearchHistory(page = 1, filter = 'all') {
+            try {
+                const response = await fetch(`/admin/api/search-history?page=${page}&filter=${filter}`);
+                const data = await response.json();
+                
+                searchHistoryData = data.history || [];
+                currentPage = data.current_page || 1;
+                totalPages = data.total_pages || 1;
+                
+                displaySearchHistory(searchHistoryData);
+                updatePagination();
+            } catch (error) {
+                console.error('Error loading search history:', error);
+                document.getElementById('search-history-tbody').innerHTML = `
+                    <tr><td colspan="7" style="text-align: center; color: red;">${lang === 'zh' ? '載入失敗' : 'Failed to load'}</td></tr>
+                `;
+            }
+        }
+
+        // Display Search History
+        function displaySearchHistory(history) {
+            const tbody = document.getElementById('search-history-tbody');
+            
+            if (history.length === 0) {
+                tbody.innerHTML = `
+                    <tr><td colspan="7" style="text-align: center; padding: 40px;">${lang === 'zh' ? '沒有搜尋記錄' : 'No search history'}</td></tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = history.map(h => `
+                <tr>
+                    <td>${new Date(h.timestamp).toLocaleString(lang === 'zh' ? 'zh-HK' : 'en-US')}</td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${h.preferences || '-'}</td>
+                    <td>${h.cuisine || '-'}</td>
+                    <td>${h.district || '-'}</td>
+                    <td><span class="badge badge-blue">${h.budget || '-'}</span></td>
+                    <td>${h.results_count || 0}</td>
+                    <td>${h.language === 'zh' ? '中文' : 'English'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update Pagination
+        function updatePagination() {
+            document.getElementById('page-info').textContent = lang === 'zh' 
+                ? `第 ${currentPage} / ${totalPages} 頁`
+                : `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage === totalPages;
+        }
+
+        // Pagination functions
+        function previousPage() {
+            if (currentPage > 1) {
+                loadSearchHistory(currentPage - 1, document.getElementById('history-filter').value);
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                loadSearchHistory(currentPage + 1, document.getElementById('history-filter').value);
+            }
+        }
+
+        function filterSearchHistory() {
+            const filter = document.getElementById('history-filter').value;
+            loadSearchHistory(1, filter);
+        }
+
+        // Export Search History
+        function exportSearchHistory() {
+            const csv = [
+                ['Time', 'Preferences', 'Cuisine', 'District', 'Budget', 'Results', 'Language'],
+                ...searchHistoryData.map(h => [
+                    new Date(h.timestamp).toLocaleString(),
+                    h.preferences || '-',
+                    h.cuisine || '-',
+                    h.district || '-',
+                    h.budget || '-',
+                    h.results_count || 0,
+                    h.language === 'zh' ? '中文' : 'English'
+                ])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `search_history_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Clear Search History
+        async function clearSearchHistory() {
+            if (!confirm(lang === 'zh' ? '確定要清除所有搜尋記錄嗎？' : 'Are you sure you want to clear all search history?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/admin/api/search-history', { method: 'DELETE' });
+                if (response.ok) {
+                    alert(lang === 'zh' ? '搜尋記錄已清除' : 'Search history cleared');
+                    loadSearchHistory();
+                }
+            } catch (error) {
+                console.error('Error clearing history:', error);
+                alert(lang === 'zh' ? '清除失敗' : 'Failed to clear');
+            }
+        }
+
+        // Initialize
+        loadDashboardStats();
+        
+        // Load settings when settings tab is opened
+        document.querySelector('[data-section="settings"]').addEventListener('click', function() {
+            loadSettings();
+        });
+        
+        // Load analytics when analytics tab is opened
+        document.querySelector('[data-section="analytics"]').addEventListener('click', function() {
+            loadAnalytics();
+        });
+        
+        // Load search history when search history tab is opened
+        document.querySelector('[data-section="search-history"]').addEventListener('click', function() {
+            loadSearchHistory();
+        });
+    </script>
+</body>
+</html>

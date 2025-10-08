@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="{{ 'zh-HK' if lang == 'zh' else 'en' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIEat - {{ '香港餐廳推薦' if lang == 'zh' else 'Hong Kong Restaurant Finder' }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            padding: 0;
+            margin: 0;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #2d2d2d;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #444;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #444;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 160, 71, 0.4);
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .chat-history::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-history::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb {
+            background: #43a047;
+            border-radius: 3px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb:hover {
+            background: #66bb6a;
+        }
+
+        .chat-history-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #3a3a3a;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .chat-history-item:hover {
+            background: #454545;
+            border-left-color: #43a047;
+        }
+
+        .chat-history-item.active {
+            background: #43a047;
+            border-left-color: #66bb6a;
+        }
+
+        .chat-history-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chat-history-date {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        .chat-history-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .chat-history-item:hover .chat-history-actions {
+            opacity: 1;
+        }
+
+        .chat-action-btn {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .chat-action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            width: 40px;
+            height: 40px;
+            background: #43a047;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 999;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .sidebar-toggle {
+                display: flex;
+            }
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            padding: 20px 0;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .lang-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: white;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: #43a047;
+            border-color: white;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.6s ease-out;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            max-height: calc(100vh - 200px);
+            min-height: 600px;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header .ai-avatar {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+        }
+
+        .chat-header-info h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .chat-header-info p {
+            margin: 0;
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #43a047;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #2e7d32;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+            max-width: 80%;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+        }
+
+        .message.user .message-avatar {
+            background: #667eea;
+        }
+
+        .message-bubble {
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.5;
+        }
+
+        .message.ai .message-bubble {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 5px;
+            padding: 12px 18px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #43a047;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-input-area {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 1rem;
+            resize: none;
+            max-height: 120px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #43a047;
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(67, 160, 71, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-suggestions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .suggestion-chip {
+            padding: 8px 16px;
+            background: #f1f8e9;
+            border: 1px solid #c5e1a5;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #558b2f;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-chip:hover {
+            background: #43a047;
+            color: white;
+            border-color: #43a047;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .modal-restaurant-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .modal-restaurant-name-alt {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .modal-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .modal-info-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-info-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-rating {
+            display: flex;
+            gap: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .modal-rating-item {
+            flex: 1;
+            text-align: center;
+        }
+
+        .modal-rating-icon {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .modal-rating-count {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-section-content {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .modal-dishes {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .modal-btn-primary {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            border: none;
+        }
+
+        .modal-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(67, 160, 71, 0.3);
+        }
+
+        .modal-btn-secondary {
+            background: white;
+            color: #43a047;
+            border: 2px solid #43a047;
+        }
+
+        .modal-btn-secondary:hover {
+            background: #f1f8e9;
+        }
+
+        .ai-assistant-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f1f8e9 0%, #e8f5e9 100%);
+            border-radius: 15px;
+            border-left: 4px solid #43a047;
+        }
+
+        .ai-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .ai-greeting {
+            flex: 1;
+        }
+
+        .ai-greeting h3 {
+            color: #2e7d32;
+            margin-bottom: 5px;
+            font-size: 1.2rem;
+        }
+
+        .ai-greeting p {
+            color: #558b2f;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .conversation-input {
+            background: #fafafa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chat-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #43a047;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .chat-label i {
+            font-size: 1.2rem;
+        }
+
+        .optional-filters {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #e0e0e0;
+        }
+
+        .optional-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+            margin-bottom: 15px;
+        }
+
+        .optional-header:hover {
+            background: #f5f5f5;
+        }
+
+        .optional-header h4 {
+            color: #666;
+            font-size: 0.95rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .optional-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .optional-content.expanded {
+            max-height: 500px;
+        }
+
+        .ai-suggestion {
+            background: #fff3e0;
+            border-left: 3px solid #ff9800;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #e65100;
+        }
+
+        .ai-suggestion i {
+            margin-right: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group label i {
+            margin-right: 8px;
+            color: #43a047;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #43a047;
+            box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        select.form-control {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        .district-select-wrapper {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .district-select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2343a047' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        .district-select:focus {
+            outline: none;
+            border-color: #43a047;
+            box-shadow: 0 0 0 3px rgba(67, 160, 71, 0.1);
+        }
+
+        .district-select optgroup {
+            font-weight: 600;
+            color: #43a047;
+            font-style: normal;
+        }
+
+        .district-select option {
+            padding: 8px;
+            color: #333;
+        }
+
+        .quick-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-filter-btn {
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .quick-filter-btn:hover {
+            border-color: #43a047;
+            background: #f1f8e9;
+        }
+
+        .quick-filter-btn.active {
+            background: #43a047;
+            color: white;
+            border-color: #43a047;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 160, 71, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #43a047;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .results-header h2 {
+            margin-bottom: 5px;
+        }
+
+        .restaurant-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.4s ease-out;
+        }
+
+        .restaurant-card:hover {
+            border-color: #43a047;
+            box-shadow: 0 5px 20px rgba(67, 160, 71, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .restaurant-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .restaurant-name {
+            flex: 1;
+        }
+
+        .restaurant-name h3 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .restaurant-name .name-zh {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .match-badge {
+            background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .restaurant-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            color: #555;
+        }
+
+        .info-item i {
+            color: #43a047;
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        .rating {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .rating-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rating-item i {
+            font-size: 1.2rem;
+        }
+
+        .rating-item.smile i {
+            color: #4caf50;
+        }
+
+        .rating-item.ok i {
+            color: #ff9800;
+        }
+
+        .rating-item.cry i {
+            color: #f44336;
+        }
+
+        .description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .popular-dishes {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .popular-dishes h4 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .popular-dishes p {
+            color: #43a047;
+            font-weight: 500;
+        }
+
+        .match-reasons {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .match-reasons h4 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .match-reasons ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .match-reasons li {
+            color: #388e3c;
+            padding: 3px 0;
+        }
+
+        .match-reasons li:before {
+            content: "✓ ";
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .restaurant-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #43a047;
+            border: 2px solid #43a047;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #43a047;
+            color: white;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .main-card {
+                padding: 25px;
+            }
+
+            .restaurant-header {
+                flex-direction: column;
+            }
+
+            .match-badge {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" onclick="startNewChat()">
+                    <i class="fas fa-plus"></i>
+                    {{ '新對話' if lang == 'zh' else 'New Chat' }}
+                </button>
+            </div>
+            <div class="chat-history" id="chatHistory">
+                <!-- Chat history items will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="lang-selector">
+                <a href="/?lang=en" class="lang-btn {{ 'active' if lang == 'en' else '' }}">English</a>
+                <a href="/?lang=zh" class="lang-btn {{ 'active' if lang == 'zh' else '' }}">繁體中文</a>
+            </div>
+
+            <div class="content-wrapper">
+                <div class="header">
+                    <h1><i class="fas fa-utensils"></i> AIEat</h1>
+                    <p>🇭🇰 {{ 'AI 智能香港餐廳推薦系統' if lang == 'zh' else 'AI-Powered Hong Kong Restaurant Recommendations' }}</p>
+                </div>
+
+                <div class="main-card">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="ai-avatar">🤖</div>
+                <div class="chat-header-info">
+                    <h3>{{ 'AI 美食專家' if lang == 'zh' else 'AI Foodie Expert' }}</h3>
+                    <p>{{ '線上 • 隨時幫你搵餐廳' if lang == 'zh' else 'Online • Ready to help' }}</p>
+                </div>
+            </div>
+
+            <!-- Chat Messages -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome Message -->
+                <div class="message ai">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-bubble">
+                        {{ welcome_message | safe }}
+                    </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div class="message ai">
+                    <div class="message-avatar">🤖</div>
+                    <div class="typing-indicator" id="typingIndicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="chat-input-area">
+                <div class="quick-suggestions" id="quickSuggestions">
+                    {% if lang == 'zh' %}
+                    <div class="suggestion-chip" data-text="想食浪漫啲嘅意大利餐，中環附近">💑 浪漫意大利餐</div>
+                    <div class="suggestion-chip" data-text="想食好辣嘅火鍋，同friend hea">🌶️ 辣火鍋</div>
+                    <div class="suggestion-chip" data-text="想食高質嘅日本菜，慶祝生日">🎂 慶祝生日</div>
+                    {% else %}
+                    <div class="suggestion-chip" data-text="Romantic Italian dinner in Central">💑 Romantic Italian</div>
+                    <div class="suggestion-chip" data-text="Super spicy hotpot with friends">🌶️ Spicy Hotpot</div>
+                    <div class="suggestion-chip" data-text="High-end Japanese for birthday">🎂 Birthday Celebration</div>
+                    {% endif %}
+                </div>
+                <form id="chatForm">
+                    <input type="hidden" id="currentLang" value="{{ lang }}">
+                    <input type="hidden" id="budget" value="Any">
+                    <input type="hidden" id="district" value="Any">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="chatInput" 
+                            class="chat-input" 
+                            placeholder="{{ '講俾我知你想食咩...' if lang == 'zh' else 'Tell me what you\'re craving...' }}"
+                            rows="1"
+                            required
+                        ></textarea>
+                        <button type="submit" class="send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Restaurant Detail Modal -->
+    <div class="modal-overlay" id="restaurantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal()">×</button>
+                <div class="modal-restaurant-name" id="modalRestaurantName"></div>
+                <div class="modal-restaurant-name-alt" id="modalRestaurantNameAlt"></div>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const sendBtn = document.getElementById('sendBtn');
+        const currentLang = document.getElementById('currentLang').value;
+
+        // Store current recommendations
+        let currentRecommendations = [];
+        let shownCount = 0;
+        
+        // Store conversation history for context
+        let conversationHistory = [];
+
+        // Modal functions
+        function openModal(index) {
+            const restaurant = window[`restaurant_${index}`];
+            if (!restaurant) {
+                console.error('Restaurant not found:', index);
+                return;
+            }
+            
+            const modal = document.getElementById('restaurantModal');
+            const isZh = currentLang === 'zh';
+            
+            const name = isZh && restaurant.name_zh ? restaurant.name_zh : restaurant.name_en;
+            const nameAlt = isZh ? restaurant.name_en : restaurant.name_zh;
+            const cuisine = isZh && restaurant.cuisine_zh ? restaurant.cuisine_zh : restaurant.cuisine_en;
+            const district = isZh && restaurant.district_zh ? restaurant.district_zh : restaurant.district_en;
+            const address = isZh && restaurant.address_zh ? restaurant.address_zh : restaurant.address_en;
+            const description = isZh && restaurant.description_zh ? restaurant.description_zh : restaurant.description_en;
+            const popularDishes = isZh && restaurant.popular_dishes_zh ? restaurant.popular_dishes_zh : restaurant.popular_dishes_en;
+            const openingHours = isZh && restaurant.opening_hours_zh ? restaurant.opening_hours_zh : restaurant.opening_hours_en;
+            
+            document.getElementById('modalRestaurantName').textContent = name;
+            document.getElementById('modalRestaurantNameAlt').textContent = nameAlt || '';
+            
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div class="modal-info-grid">
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">${isZh ? '菜系' : 'Cuisine'}</div>
+                        <div class="modal-info-value">${cuisine}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">${isZh ? '地區' : 'District'}</div>
+                        <div class="modal-info-value">${district}</div>
+                    </div>
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">${isZh ? '價格' : 'Price'}</div>
+                        <div class="modal-info-value">${restaurant.price}</div>
+                    </div>
+                    ${restaurant.phone ? `
+                    <div class="modal-info-item">
+                        <div class="modal-info-label">${isZh ? '電話' : 'Phone'}</div>
+                        <div class="modal-info-value">${restaurant.phone}</div>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="modal-rating">
+                    <div class="modal-rating-item">
+                        <div class="modal-rating-icon" style="color: #4caf50;">😊</div>
+                        <div class="modal-rating-count">${restaurant.rating_smile}</div>
+                        <div style="font-size: 0.85rem; color: #666;">${isZh ? '滿意' : 'Happy'}</div>
+                    </div>
+                    <div class="modal-rating-item">
+                        <div class="modal-rating-icon" style="color: #ff9800;">😐</div>
+                        <div class="modal-rating-count">${restaurant.rating_ok}</div>
+                        <div style="font-size: 0.85rem; color: #666;">${isZh ? '一般' : 'Okay'}</div>
+                    </div>
+                    <div class="modal-rating-item">
+                        <div class="modal-rating-icon" style="color: #f44336;">😢</div>
+                        <div class="modal-rating-count">${restaurant.rating_cry}</div>
+                        <div style="font-size: 0.85rem; color: #666;">${isZh ? '不滿' : 'Sad'}</div>
+                    </div>
+                </div>
+
+                ${description ? `
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        <i class="fas fa-info-circle"></i>
+                        ${isZh ? '關於餐廳' : 'About'}
+                    </div>
+                    <div class="modal-section-content">${description}</div>
+                </div>
+                ` : ''}
+
+                ${popularDishes ? `
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        <i class="fas fa-fire"></i>
+                        ${isZh ? '熱門菜式' : 'Popular Dishes'}
+                    </div>
+                    <div class="modal-dishes">${popularDishes}</div>
+                </div>
+                ` : ''}
+
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        <i class="fas fa-map-marker-alt"></i>
+                        ${isZh ? '地址' : 'Address'}
+                    </div>
+                    <div class="modal-section-content">${address}</div>
+                    
+                    <div style="margin-top: 15px;">
+                        <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name + ' ' + address + ' Hong Kong')}" 
+                           target="_blank" 
+                           style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 24px; background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(67, 160, 71, 0.3); width: 100%;"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(67, 160, 71, 0.4)';"
+                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(67, 160, 71, 0.3)';">
+                            <i class="fas fa-directions"></i>
+                            ${isZh ? '🗺️ 在 Google Maps 查看位置' : '🗺️ View Location on Google Maps'}
+                        </a>
+                    </div>
+                </div>
+
+                ${openingHours ? `
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        <i class="fas fa-clock"></i>
+                        ${isZh ? '營業時間' : 'Opening Hours'}
+                    </div>
+                    <div class="modal-section-content">${openingHours}</div>
+                </div>
+                ` : ''}
+
+                <div class="modal-actions">
+                    ${restaurant.phone ? `
+                    <a href="tel:${restaurant.phone}" class="modal-btn modal-btn-secondary">
+                        <i class="fas fa-phone"></i>
+                        ${isZh ? '打電話' : 'Call'}
+                    </a>
+                    ` : ''}
+                    ${restaurant.url ? `
+                    <a href="${restaurant.url}" target="_blank" class="modal-btn modal-btn-primary">
+                        <i class="fas fa-external-link-alt"></i>
+                        ${isZh ? '在 OpenRice 查看' : 'View on OpenRice'}
+                    </a>
+                    ` : ''}
+                </div>
+            `;
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('restaurantModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('restaurantModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Handle Enter key: Enter to send, Alt+Enter for new line
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.altKey && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        // Quick suggestions
+        document.querySelectorAll('.suggestion-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                chatInput.value = chip.dataset.text;
+                chatInput.focus();
+                chatInput.dispatchEvent(new Event('input'));
+            });
+        });
+
+        // Add message to chat
+        function addMessage(text, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = isUser ? '👤' : '🤖';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.innerHTML = text;
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(bubble);
+            
+            // Insert before typing indicator if it exists in the DOM
+            const typingParent = typingIndicator.parentElement;
+            if (typingParent && chatMessages.contains(typingParent)) {
+                chatMessages.insertBefore(messageDiv, typingParent);
+            } else {
+                // If typing indicator not in DOM, just append
+                chatMessages.appendChild(messageDiv);
+            }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Show typing indicator
+        function showTyping() {
+            typingIndicator.classList.add('active');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Hide typing indicator
+        function hideTyping() {
+            typingIndicator.classList.remove('active');
+        }
+
+        // Toggle optional filters
+        function toggleOptionalFilters() {
+            const content = document.getElementById('optionalContent');
+            const icon = document.getElementById('filterToggleIcon');
+            content.classList.toggle('expanded');
+            icon.classList.toggle('fa-chevron-down');
+            icon.classList.toggle('fa-chevron-up');
+        }
+
+        // District data organized by region
+        const districtData = {
+            'hk-island': {
+                en: ['Central', 'Admiralty', 'Wan Chai', 'Causeway Bay', 'Tin Hau', 'Fortress Hill', 'North Point', 'Quarry Bay', 'Tai Koo', 'Sai Wan Ho', 'Shau Kei Wan', 'Chai Wan', 'Sheung Wan', 'Sai Ying Pun', 'Kennedy Town', 'Pok Fu Lam', 'Aberdeen', 'Wong Chuk Hang', 'Stanley', 'Repulse Bay', 'Shek O'],
+                zh: ['中環', '金鐘', '灣仔', '銅鑼灣', '天后', '炮台山', '北角', '鰂魚涌', '太古', '西灣河', '筲箕灣', '柴灣', '上環', '西營盤', '堅尼地城', '薄扶林', '香港仔', '黃竹坑', '赤柱', '淺水灣', '石澳']
+            },
+            'kowloon': {
+                en: ['Tsim Sha Tsui', 'Jordan', 'Yau Ma Tei', 'Mong Kok', 'Prince Edward', 'Sham Shui Po', 'Cheung Sha Wan', 'Lai Chi Kok', 'Mei Foo', 'Kowloon Tong', 'Kowloon City', 'To Kwa Wan', 'Hung Hom', 'Whampoa', 'Ho Man Tin', 'Yau Tong', 'Lam Tin', 'Kwun Tong', 'Ngau Tau Kok', 'Kowloon Bay', 'Choi Hung', 'Diamond Hill', 'Wong Tai Sin', 'Lok Fu', 'San Po Kong'],
+                zh: ['尖沙咀', '佐敦', '油麻地', '旺角', '太子', '深水埗', '長沙灣', '荔枝角', '美孚', '九龍塘', '九龍城', '土瓜灣', '紅磡', '黃埔', '何文田', '油塘', '藍田', '觀塘', '牛頭角', '九龍灣', '彩虹', '鑽石山', '黃大仙', '樂富', '新蒲崗']
+            },
+            'nt': {
+                en: ['Tsuen Wan', 'Kwai Chung', 'Tsing Yi', 'Tuen Mun', 'Yuen Long', 'Tin Shui Wai', 'Sheung Shui', 'Fanling', 'Tai Po', 'Sha Tin', 'Ma On Shan', 'Tseung Kwan O', 'Sai Kung', 'Tung Chung', 'Discovery Bay'],
+                zh: ['荃灣', '葵涌', '青衣', '屯門', '元朗', '天水圍', '上水', '粉嶺', '大埔', '沙田', '馬鞍山', '將軍澳', '西貢', '東涌', '愉景灣']
+            }
+        };
+
+        const regionNames = {
+            'hk-island': { en: 'Hong Kong Island', zh: '港島' },
+            'kowloon': { en: 'Kowloon', zh: '九龍' },
+            'nt': { en: 'New Territories', zh: '新界' }
+        };
+
+        // Populate dropdown with districts
+        function populateDistrictDropdown(filter) {
+            const select = document.getElementById('district');
+            const anyText = currentLang === 'zh' ? '任何地區' : 'Any District';
+            
+            // Clear existing options
+            select.innerHTML = `<option value="Any">${anyText}</option>`;
+            
+            if (filter === 'all') {
+                // Show all districts grouped by region
+                ['hk-island', 'kowloon', 'nt'].forEach(region => {
+                    const optgroup = document.createElement('optgroup');
+                    optgroup.label = regionNames[region][currentLang];
+                    
+                    const districts = districtData[region][currentLang];
+                    districts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district;
+                        option.textContent = district;
+                        optgroup.appendChild(option);
+                    });
+                    
+                    select.appendChild(optgroup);
+                });
+            } else {
+                // Show only selected region
+                const districts = districtData[filter][currentLang];
+                districts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    select.appendChild(option);
+                });
+            }
+        }
+
+        // Quick filter buttons
+        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.quick-filter-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                btn.classList.add('active');
+                
+                const filter = btn.dataset.filter;
+                populateDistrictDropdown(filter);
+            });
+        });
+
+        // Initialize dropdown on page load
+        populateDistrictDropdown('all');
+
+        // Chat form submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userMessage = chatInput.value.trim();
+            if (!userMessage) return;
+
+            // Check if user wants to see more restaurants (must be short and simple request)
+            const isShortMessage = userMessage.length < 20;
+            const wantsMore = isShortMessage && (currentLang === 'zh' 
+                ? /^(想睇多|show more|繼續|其他|more|yes|好|ok|要|睇多)$/i.test(userMessage.trim())
+                : /^(yes|yeah|sure|ok|more|show more|continue)$/i.test(userMessage.trim()));
+
+            if (wantsMore && currentRecommendations.length > 0 && shownCount < currentRecommendations.length) {
+                // Add user message to chat
+                addMessage(userMessage, true);
+                
+                // Clear input
+                chatInput.value = '';
+                chatInput.style.height = 'auto';
+                
+                // Show typing briefly
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    const okMsg = currentLang === 'zh' ? '好！等我show你...' : 'Sure! Let me show you...';
+                    addMessage(okMsg);
+                    setTimeout(() => {
+                        showMoreRestaurants();
+                    }, 500);
+                }, 800);
+                return;
+            }
+
+            // Add user message to chat
+            addMessage(userMessage, true);
+
+            // Clear input and hide suggestions
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            document.getElementById('quickSuggestions').style.display = 'none';
+
+            // Show typing indicator
+            showTyping();
+
+            // Disable send button
+            sendBtn.disabled = true;
+
+            // Send previous conversation history (before adding current message)
+            const previousHistory = [...conversationHistory]; // Copy before adding new message
+            
+            // Add current message to conversation history
+            conversationHistory.push({
+                role: 'user',
+                message: userMessage
+            });
+            
+            // Keep only last 5 exchanges for context
+            if (conversationHistory.length > 10) {
+                conversationHistory = conversationHistory.slice(-10);
+            }
+            
+            console.log('📤 Sending conversation history:', previousHistory);
+            
+            const formData = {
+                preferences: userMessage,
+                budget: document.getElementById('budget').value,
+                district: document.getElementById('district').value,
+                lang: currentLang,
+                conversation_history: previousHistory // Send previous messages (not including current)
+            };
+
+            try {
+                const response = await fetch('/recommend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                hideTyping();
+
+                if (data.success) {
+                    // Add AI response to conversation history
+                    if (data.analysis && data.analysis.ai_message) {
+                        conversationHistory.push({
+                            role: 'assistant',
+                            message: data.analysis.ai_message,
+                            analysis: data.analysis
+                        });
+                    }
+                    
+                    displayChatResults(data);
+                    // Save chat after successful response
+                    setTimeout(saveChatHistory, 1000);
+                } else {
+                    addMessage(data.error || (currentLang === 'zh' ? '唔好意思，出咗啲問題...' : 'Sorry, something went wrong...'));
+                    setTimeout(saveChatHistory, 500);
+                }
+            } catch (err) {
+                hideTyping();
+                addMessage(currentLang === 'zh' ? '😅 唔好意思，連接唔到server... 試下refresh？' : '😅 Oops, couldn\'t connect to the server... Try refreshing?');
+                setTimeout(saveChatHistory, 500);
+            } finally {
+                sendBtn.disabled = false;
+            }
+        });
+
+        function createRestaurantCard(rest, index) {
+            const isZh = currentLang === 'zh';
+            const name = isZh && rest.name_zh ? rest.name_zh : rest.name_en;
+            const cuisine = isZh && rest.cuisine_zh ? rest.cuisine_zh : rest.cuisine_en;
+            const district = isZh && rest.district_zh ? rest.district_zh : rest.district_en;
+            
+            // Store restaurant data for modal
+            window[`restaurant_${index}`] = rest;
+            
+            // Format match reasons
+            let reasonsHtml = '';
+            if (rest.match_reasons && rest.match_reasons.length > 0) {
+                reasonsHtml = `
+                    <div style="margin-top: 12px; padding: 10px; background: #e8f5e9; border-radius: 8px; border-left: 3px solid #43a047;">
+                        <div style="font-size: 0.85rem; font-weight: 600; color: #2e7d32; margin-bottom: 5px;">
+                            ${isZh ? '✨ 推薦原因：' : '✨ Why this match:'}
+                        </div>
+                        ${rest.match_reasons.map(reason => `
+                            <div style="font-size: 0.85rem; color: #558b2f; margin-top: 3px;">
+                                • ${reason}
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            return `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 12px; margin-top: 10px;">
+                    <div style="font-weight: 600; font-size: 1.1rem; margin-bottom: 8px;">${name}</div>
+                    <div style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">
+                        ${cuisine} • ${district} • ${rest.price}
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <span style="color: #4caf50;">😊 ${rest.rating_smile}</span>
+                        <span style="color: #ff9800;">😐 ${rest.rating_ok}</span>
+                        <span style="color: #f44336;">😢 ${rest.rating_cry}</span>
+                    </div>
+                    ${reasonsHtml}
+                    <button class="view-details-btn" data-restaurant-index="${index}" style="display: inline-block; margin-top: 10px; color: #43a047; background: none; border: none; cursor: pointer; font-weight: 500; font-size: 1rem; padding: 0;">${isZh ? '睇詳情 →' : 'View Details →'}</button>
+                </div>
+            `;
+        }
+        
+        // Event delegation for view details buttons and show more buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('view-details-btn')) {
+                const index = parseInt(e.target.getAttribute('data-restaurant-index'));
+                openModal(index);
+            }
+            
+            if (e.target.classList.contains('show-more-btn')) {
+                showMoreRestaurants();
+            }
+        });
+
+        function showMoreRestaurants() {
+            const remaining = currentRecommendations.length - shownCount;
+            const toShow = Math.min(3, remaining);
+            
+            if (toShow === 0) return;
+            
+            // Hide all "Show More" buttons
+            document.querySelectorAll('.show-more-btn').forEach(btn => {
+                btn.style.display = 'none';
+            });
+
+            const nextBatch = currentRecommendations.slice(shownCount, shownCount + toShow);
+            
+            nextBatch.forEach((rest, batchIndex) => {
+                setTimeout(() => {
+                    addMessage(createRestaurantCard(rest, shownCount + batchIndex));
+                }, batchIndex * 300);
+            });
+
+            shownCount += toShow;
+
+            // Check if there are still more
+            setTimeout(() => {
+                if (shownCount < currentRecommendations.length) {
+                    const stillRemaining = currentRecommendations.length - shownCount;
+                    const moreMsg = currentLang === 'zh' 
+                        ? `仲有 ${stillRemaining} 間！` 
+                        : `${stillRemaining} more left!`;
+                    
+                    const buttonHtml = `
+                        <div style="margin-top: 15px;">
+                            <button onclick="showMoreRestaurants()" class="show-more-btn" style="
+                                background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 25px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                box-shadow: 0 4px 12px rgba(67, 160, 71, 0.3);
+                                transition: all 0.3s ease;
+                            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(67, 160, 71, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(67, 160, 71, 0.3)';">
+                                ${currentLang === 'zh' ? '🍽️ 睇多啲選擇' : '🍽️ Show More Options'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    addMessage(moreMsg + buttonHtml);
+                } else {
+                    const doneMsg = currentLang === 'zh'
+                        ? '呢啲就係全部啦！鍾意邊間？😊'
+                        : 'That\'s all of them! Which one do you like? 😊';
+                    addMessage(doneMsg);
+                }
+            }, toShow * 300 + 200);
+        }
+
+        function displayChatResults(data) {
+            const recommendations = data.recommendations;
+            
+            if (recommendations.length === 0) {
+                const msg = currentLang === 'zh' ? '😅 唔好意思，搵唔到完全match你要求嘅餐廳... 試下講得再詳細啲？或者改下條件？' : '😅 Oops, couldn\'t find anything that perfectly matches what you want... Wanna try being more specific or adjust your criteria?';
+                addMessage(msg);
+                return;
+            }
+
+            // Store recommendations
+            currentRecommendations = recommendations;
+            shownCount = 0;
+
+            // AI response message - use AI-generated message if available
+            let aiResponse = '';
+            
+            if (data.analysis && data.analysis.ai_message) {
+                // Use AI-generated conversational message
+                aiResponse = data.analysis.ai_message + '<br><br>';
+            } else {
+                // Fallback to template
+                if (currentLang === 'zh') {
+                    if (data.analysis && data.analysis.cuisine_types && data.analysis.cuisine_types.length > 0) {
+                        const cuisines = data.analysis.cuisine_types.join('、');
+                        const atmosphere = data.analysis.atmosphere || '';
+                        aiResponse = `明白！你想食${cuisines}${atmosphere ? '，要' + atmosphere + '啲嘅feel' : ''}。<br><br>`;
+                    }
+                } else {
+                    if (data.analysis && data.analysis.cuisine_types && data.analysis.cuisine_types.length > 0) {
+                        const cuisines = data.analysis.cuisine_types.join(', ');
+                        const atmosphere = data.analysis.atmosphere || '';
+                        aiResponse = `Got it! You want ${cuisines}${atmosphere ? ' with a ' + atmosphere + ' vibe' : ''}.<br><br>`;
+                    }
+                }
+            }
+            
+            // Add result count
+            if (currentLang === 'zh') {
+                aiResponse += `我睇咗 ${data.total_matches} 間餐廳，幫你揀咗最好嘅 ${recommendations.length} 間出嚟！`;
+            } else {
+                aiResponse += `I checked out ${data.total_matches} places and picked the best ${recommendations.length} for you!`;
+            }
+
+            addMessage(aiResponse);
+
+            // Show first 3 restaurants
+            const firstBatch = recommendations.slice(0, 3);
+            firstBatch.forEach((rest, index) => {
+                setTimeout(() => {
+                    addMessage(createRestaurantCard(rest, index));
+                }, index * 300);
+            });
+
+            shownCount = firstBatch.length;
+
+            // Add "see more" button if there are more restaurants
+            if (recommendations.length > 3) {
+                setTimeout(() => {
+                    const remaining = recommendations.length - 3;
+                    const moreMsg = currentLang === 'zh' 
+                        ? `仲有 ${remaining} 間餐廳都好match！` 
+                        : `I found ${remaining} more great matches!`;
+                    
+                    const buttonHtml = `
+                        <div style="margin-top: 15px;">
+                            <button onclick="showMoreRestaurants()" class="show-more-btn" style="
+                                background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 25px;
+                                font-size: 1rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                box-shadow: 0 4px 12px rgba(67, 160, 71, 0.3);
+                                transition: all 0.3s ease;
+                            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(67, 160, 71, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(67, 160, 71, 0.3)';">
+                                ${currentLang === 'zh' ? '🍽️ 睇多啲選擇' : '🍽️ Show More Options'}
+                            </button>
+                        </div>
+                    `;
+                    
+                    addMessage(moreMsg + buttonHtml);
+                }, 1000);
+            }
+        }
+
+        function displayResults(data) {
+            displayChatResults(data);
+        }
+
+        function showError(message) {
+            addMessage('❌ ' + message);
+        }
+
+        // Old function kept for compatibility
+        function oldDisplayResults(data) {
+            const recommendations = data.recommendations;
+            restaurantList.innerHTML = recommendations.map((rest, index) => {
+                const isZh = currentLang === 'zh';
+                const name = isZh && rest.name_zh ? rest.name_zh : rest.name_en;
+                const nameAlt = isZh ? rest.name_en : rest.name_zh;
+                const cuisine = isZh && rest.cuisine_zh ? rest.cuisine_zh : rest.cuisine_en;
+                const district = isZh && rest.district_zh ? rest.district_zh : rest.district_en;
+                const address = isZh && rest.address_zh ? rest.address_zh : rest.address_en;
+                const description = isZh && rest.description_zh ? rest.description_zh : rest.description_en;
+                const popularDishes = isZh && rest.popular_dishes_zh ? rest.popular_dishes_zh : rest.popular_dishes_en;
+                const openingHours = isZh && rest.opening_hours_zh ? rest.opening_hours_zh : rest.opening_hours_en;
+                
+                return `
+                <div class="restaurant-card" style="animation-delay: ${index * 0.1}s">
+                    <div class="restaurant-header">
+                        <div class="restaurant-name">
+                            <h3>${name}</h3>
+                            ${nameAlt ? `<div class="name-zh">${nameAlt}</div>` : ''}
+                        </div>
+                        <div class="match-badge">
+                            ${rest.match_score}% ${isZh ? '配對' : 'Match'}
+                        </div>
+                    </div>
+
+                    <div class="restaurant-info">
+                        <div class="info-item">
+                            <i class="fas fa-utensils"></i>
+                            <span>${cuisine}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${district}</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span>${rest.price}</span>
+                        </div>
+                        ${rest.phone ? `
+                        <div class="info-item">
+                            <i class="fas fa-phone"></i>
+                            <span>${rest.phone}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="rating">
+                        <div class="rating-item smile">
+                            <i class="fas fa-smile"></i>
+                            <span>${rest.rating_smile}</span>
+                        </div>
+                        <div class="rating-item ok">
+                            <i class="fas fa-meh"></i>
+                            <span>${rest.rating_ok}</span>
+                        </div>
+                        <div class="rating-item cry">
+                            <i class="fas fa-frown"></i>
+                            <span>${rest.rating_cry}</span>
+                        </div>
+                    </div>
+
+                    ${description ? `
+                    <div class="description">
+                        ${description}
+                    </div>
+                    ` : ''}
+
+                    ${popularDishes ? `
+                    <div class="popular-dishes">
+                        <h4><i class="fas fa-fire"></i> ${isZh ? '熱門菜式' : 'Popular Dishes'}</h4>
+                        <p>${popularDishes}</p>
+                    </div>
+                    ` : ''}
+
+                    ${rest.match_reasons && rest.match_reasons.length > 0 ? `
+                    <div class="match-reasons">
+                        <h4><i class="fas fa-check-circle"></i> ${isZh ? '為何推薦？' : 'Why This Match?'}</h4>
+                        <ul>
+                            ${rest.match_reasons.map(reason => `<li>${reason}</li>`).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+
+                    <div class="info-item" style="margin-bottom: 15px;">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span>${address}</span>
+                    </div>
+
+                    ${openingHours ? `
+                    <div class="info-item" style="margin-bottom: 15px;">
+                        <i class="fas fa-clock"></i>
+                        <span>${openingHours}</span>
+                    </div>
+                    ` : ''}
+
+                    <div class="restaurant-actions">
+                        ${rest.url ? `
+                        <a href="${rest.url}" target="_blank" class="btn-secondary">
+                            <i class="fas fa-external-link-alt"></i>
+                            ${isZh ? '在 OpenRice 查看' : 'View on OpenRice'}
+                        </a>
+                        ` : ''}
+                        ${rest.phone ? `
+                        <a href="tel:${rest.phone}" class="btn-secondary">
+                            <i class="fas fa-phone"></i>
+                            ${isZh ? '立即致電' : 'Call Now'}
+                        </a>
+                        ` : ''}
+                    </div>
+                </div>
+            `}).join('');
+
+            results.classList.add('active');
+            results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.classList.add('active');
+        }
+
+        // ===== Chat History Management =====
+        let currentChatId = null;
+
+        function generateChatId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function saveChatHistory() {
+            const chats = JSON.parse(localStorage.getItem('aieat_chats') || '[]');
+            
+            if (!currentChatId) {
+                currentChatId = generateChatId();
+            }
+
+            // Get all messages except welcome and typing indicator
+            const messages = Array.from(chatMessages.querySelectorAll('.message')).filter(msg => 
+                !msg.querySelector('.typing-indicator') && 
+                msg !== chatMessages.firstElementChild
+            ).map(msg => ({
+                isUser: msg.classList.contains('user'),
+                content: msg.querySelector('.message-bubble').innerHTML
+            }));
+
+            console.log('Saving chat, messages count:', messages.length);
+            
+            if (messages.length === 0) {
+                console.log('No messages to save');
+                return;
+            }
+
+            // Get first user message as title
+            const firstUserMsg = messages.find(m => m.isUser);
+            const title = firstUserMsg ? 
+                firstUserMsg.content.replace(/<[^>]*>/g, '').substring(0, 50) : 
+                (currentLang === 'zh' ? '新對話' : 'New Chat');
+
+            const chatIndex = chats.findIndex(c => c.id === currentChatId);
+            const chatData = {
+                id: currentChatId,
+                title: title,
+                messages: messages,
+                timestamp: Date.now(),
+                lang: currentLang,
+                recommendations: currentRecommendations,
+                shownCount: shownCount
+            };
+
+            if (chatIndex >= 0) {
+                chats[chatIndex] = chatData;
+            } else {
+                chats.unshift(chatData);
+            }
+
+            // Keep only last 50 chats
+            if (chats.length > 50) {
+                chats.splice(50);
+            }
+
+            localStorage.setItem('aieat_chats', JSON.stringify(chats));
+            console.log('Chat saved successfully:', chatData.id, 'Total chats:', chats.length);
+            loadChatHistory();
+        }
+
+        function loadChatHistory() {
+            const chats = JSON.parse(localStorage.getItem('aieat_chats') || '[]');
+            const historyContainer = document.getElementById('chatHistory');
+            
+            if (chats.length === 0) {
+                historyContainer.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #888;">
+                        ${currentLang === 'zh' ? '暫無對話記錄' : 'No chat history'}
+                    </div>
+                `;
+                return;
+            }
+
+            historyContainer.innerHTML = chats.map(chat => {
+                const date = new Date(chat.timestamp);
+                const dateStr = date.toLocaleDateString(currentLang === 'zh' ? 'zh-HK' : 'en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="chat-history-item ${chat.id === currentChatId ? 'active' : ''}" onclick="loadChat('${chat.id}')">
+                        <div class="chat-history-title">${chat.title}</div>
+                        <div class="chat-history-date">${dateStr}</div>
+                        <div class="chat-history-actions">
+                            <button class="chat-action-btn" onclick="event.stopPropagation(); deleteChat('${chat.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadChat(chatId) {
+            const chats = JSON.parse(localStorage.getItem('aieat_chats') || '[]');
+            const chat = chats.find(c => c.id === chatId);
+            
+            if (!chat) {
+                console.log('Chat not found:', chatId);
+                return;
+            }
+
+            console.log('Loading chat:', chat);
+            currentChatId = chatId;
+            
+            // Restore recommendations data if available
+            if (chat.recommendations) {
+                currentRecommendations = chat.recommendations;
+                shownCount = chat.shownCount || 0;
+                console.log('Restored recommendations:', currentRecommendations.length, 'shown:', shownCount);
+                
+                // Restore restaurant data to window for modal access
+                currentRecommendations.forEach((rest, index) => {
+                    window[`restaurant_${index}`] = rest;
+                });
+            } else {
+                currentRecommendations = [];
+                shownCount = 0;
+            }
+            
+            // Clear current messages (keep welcome message and typing indicator)
+            const welcomeMsg = chatMessages.firstElementChild.cloneNode(true);
+            const typingMsg = document.querySelector('.typing-indicator').parentElement.cloneNode(true);
+            
+            chatMessages.innerHTML = '';
+            chatMessages.appendChild(welcomeMsg);
+            
+            // Restore messages
+            if (chat.messages && chat.messages.length > 0) {
+                chat.messages.forEach(msg => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `message ${msg.isUser ? 'user' : 'ai'}`;
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'message-avatar';
+                    avatar.textContent = msg.isUser ? '👤' : '🤖';
+                    
+                    const bubble = document.createElement('div');
+                    bubble.className = 'message-bubble';
+                    bubble.innerHTML = msg.content;
+                    
+                    messageDiv.appendChild(avatar);
+                    messageDiv.appendChild(bubble);
+                    chatMessages.appendChild(messageDiv);
+                });
+            } else {
+                console.log('No messages in chat');
+            }
+            
+            chatMessages.appendChild(typingMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            loadChatHistory();
+        }
+
+        function deleteChat(chatId) {
+            if (!confirm(currentLang === 'zh' ? '確定要刪除這個對話？' : 'Delete this chat?')) {
+                return;
+            }
+
+            let chats = JSON.parse(localStorage.getItem('aieat_chats') || '[]');
+            chats = chats.filter(c => c.id !== chatId);
+            localStorage.setItem('aieat_chats', JSON.stringify(chats));
+            
+            if (currentChatId === chatId) {
+                startNewChat();
+            } else {
+                loadChatHistory();
+            }
+        }
+
+        function startNewChat() {
+            currentChatId = null;
+            
+            // Clear messages (keep welcome)
+            const welcomeMsg = chatMessages.firstElementChild;
+            const typingMsg = chatMessages.querySelector('.message.ai:last-child');
+            chatMessages.innerHTML = '';
+            chatMessages.appendChild(welcomeMsg);
+            chatMessages.appendChild(typingMsg);
+            
+            // Clear input
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+            
+            // Show suggestions
+            document.getElementById('quickSuggestions').style.display = 'flex';
+            
+            // Reset recommendations and conversation history
+            currentRecommendations = [];
+            shownCount = 0;
+            conversationHistory = [];
+            
+            loadChatHistory();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // Load chat history on page load
+        loadChatHistory();
+    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
