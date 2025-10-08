@@ -381,6 +381,54 @@ Example: {{"cuisine_types": ["japanese"], "atmosphere": "celebration", "key_requ
         "ai_message": ""
     }
 
+def get_cuisine_keywords(cuisine_query):
+    """Extract all possible keywords for a cuisine type"""
+    query_lower = cuisine_query.lower().strip()
+    keywords = [query_lower]
+    
+    # Common cuisine mappings
+    cuisine_map = {
+        'italian': ['italian', 'italy', 'pasta', 'pizza', 'risotto', 'trattoria', 'osteria', '意大利'],
+        'japanese': ['japanese', 'japan', 'sushi', 'ramen', 'izakaya', 'tempura', 'sashimi', 'udon', 'yakitori', '日本'],
+        'chinese': ['chinese', 'china', 'cantonese', 'sichuan', 'dim sum', 'dumpling', 'noodle', '中菜', '中國'],
+        'french': ['french', 'france', 'bistro', 'brasserie', 'croissant', '法國'],
+        'korean': ['korean', 'korea', 'bbq', 'kimchi', 'bibimbap', '韓國'],
+        'thai': ['thai', 'thailand', 'pad thai', 'tom yum', '泰國'],
+        'vietnamese': ['vietnamese', 'vietnam', 'pho', 'banh mi', '越南'],
+        'indian': ['indian', 'india', 'curry', 'tandoori', 'naan', '印度'],
+        'mexican': ['mexican', 'mexico', 'taco', 'burrito', 'nacho', '墨西哥'],
+        'american': ['american', 'burger', 'steak', 'bbq', 'diner', '美國'],
+        'spanish': ['spanish', 'spain', 'tapas', 'paella', '西班牙'],
+        'greek': ['greek', 'greece', 'gyro', 'souvlaki', '希臘'],
+        'turkish': ['turkish', 'turkey', 'kebab', '土耳其'],
+        'middle eastern': ['middle eastern', 'lebanese', 'falafel', 'hummus', 'shawarma'],
+        'bar': ['bar', 'pub', 'tavern', 'wine bar', 'cocktail', 'lounge', 'brewery', '酒吧', 'wine', 'beer'],
+        'cafe': ['cafe', 'coffee', 'bakery', 'dessert', 'patisserie', '咖啡', '茶餐廳'],
+        'seafood': ['seafood', 'fish', 'oyster', 'lobster', 'crab', 'prawn', '海鮮'],
+        'steak': ['steak', 'steakhouse', 'beef', 'grill', '牛扒'],
+        'vegetarian': ['vegetarian', 'vegan', 'plant-based', 'veggie', '素食'],
+        'asian': ['asian', 'pan-asian', 'fusion'],
+        'european': ['european', 'continental'],
+        'international': ['international', 'fusion', 'contemporary'],
+        'buffet': ['buffet', 'all you can eat', '自助餐'],
+        'hotpot': ['hotpot', 'hot pot', 'steamboat', '火鍋'],
+        'bbq': ['bbq', 'barbecue', 'grill', 'yakiniku', '燒烤'],
+        'noodles': ['noodles', 'ramen', 'udon', 'pho', '麵'],
+        'dim sum': ['dim sum', 'yum cha', '點心', '飲茶'],
+    }
+    
+    # Check if query matches any cuisine category
+    for cuisine_type, aliases in cuisine_map.items():
+        if query_lower in aliases or any(alias in query_lower for alias in aliases):
+            keywords.extend(aliases)
+            break
+    
+    # Also add the original query split by spaces
+    keywords.extend(query_lower.split())
+    
+    # Remove duplicates and short words
+    return list(set([k for k in keywords if len(k) >= 3]))
+
 def calculate_match_score(restaurant, analysis, user_input, debug=False):
     """Calculate how well a restaurant matches user preferences"""
     score = 0
@@ -457,55 +505,6 @@ def calculate_match_score(restaurant, analysis, user_input, debug=False):
             print(f"   Checking cuisines: {analysis['cuisine_types']}")
             print(f"   Restaurant cuisine_en: '{rest_cuisine_en}'")
             print(f"   Restaurant cuisine_zh: '{rest_cuisine_zh}'")
-        
-        # Dynamic cuisine matching - more comprehensive
-        def get_cuisine_keywords(cuisine_query):
-            """Extract all possible keywords for a cuisine type"""
-            query_lower = cuisine_query.lower().strip()
-            keywords = [query_lower]
-            
-            # Common cuisine mappings
-            cuisine_map = {
-                'italian': ['italian', 'italy', 'pasta', 'pizza', 'risotto', 'trattoria', 'osteria', '意大利'],
-                'japanese': ['japanese', 'japan', 'sushi', 'ramen', 'izakaya', 'tempura', 'sashimi', 'udon', 'yakitori', '日本'],
-                'chinese': ['chinese', 'china', 'cantonese', 'sichuan', 'dim sum', 'dumpling', 'noodle', '中菜', '中國'],
-                'french': ['french', 'france', 'bistro', 'brasserie', 'croissant', '法國'],
-                'korean': ['korean', 'korea', 'bbq', 'kimchi', 'bibimbap', '韓國'],
-                'thai': ['thai', 'thailand', 'pad thai', 'tom yum', '泰國'],
-                'vietnamese': ['vietnamese', 'vietnam', 'pho', 'banh mi', '越南'],
-                'indian': ['indian', 'india', 'curry', 'tandoori', 'naan', '印度'],
-                'mexican': ['mexican', 'mexico', 'taco', 'burrito', 'nacho', '墨西哥'],
-                'american': ['american', 'burger', 'steak', 'bbq', 'diner', '美國'],
-                'spanish': ['spanish', 'spain', 'tapas', 'paella', '西班牙'],
-                'greek': ['greek', 'greece', 'gyro', 'souvlaki', '希臘'],
-                'turkish': ['turkish', 'turkey', 'kebab', '土耳其'],
-                'middle eastern': ['middle eastern', 'lebanese', 'falafel', 'hummus', 'shawarma'],
-                'bar': ['bar', 'pub', 'tavern', 'wine bar', 'cocktail', 'lounge', 'brewery', '酒吧', 'wine', 'beer'],
-                'cafe': ['cafe', 'coffee', 'bakery', 'dessert', 'patisserie', '咖啡', '茶餐廳'],
-                'seafood': ['seafood', 'fish', 'oyster', 'lobster', 'crab', 'prawn', '海鮮'],
-                'steak': ['steak', 'steakhouse', 'beef', 'grill', '牛扒'],
-                'vegetarian': ['vegetarian', 'vegan', 'plant-based', 'veggie', '素食'],
-                'asian': ['asian', 'pan-asian', 'fusion'],
-                'european': ['european', 'continental'],
-                'international': ['international', 'fusion', 'contemporary'],
-                'buffet': ['buffet', 'all you can eat', '自助餐'],
-                'hotpot': ['hotpot', 'hot pot', 'steamboat', '火鍋'],
-                'bbq': ['bbq', 'barbecue', 'grill', 'yakiniku', '燒烤'],
-                'noodles': ['noodles', 'ramen', 'udon', 'pho', '麵'],
-                'dim sum': ['dim sum', 'yum cha', '點心', '飲茶'],
-            }
-            
-            # Check if query matches any cuisine category
-            for cuisine_type, aliases in cuisine_map.items():
-                if query_lower in aliases or any(alias in query_lower for alias in aliases):
-                    keywords.extend(aliases)
-                    break
-            
-            # Also add the original query split by spaces
-            keywords.extend(query_lower.split())
-            
-            # Remove duplicates and short words
-            return list(set([k for k in keywords if len(k) >= 3]))
         
         # Fine dining upscale cuisines (typically associated with fine dining)
         fine_dining_cuisines = ['french', 'italian', 'japanese', 'european', 'contemporary', 
